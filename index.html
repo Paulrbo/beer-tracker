@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Le Compteur</title>
+<meta name="description" content="Suivi personnel de consommation de bière">
+<meta name="theme-color" content="#1F1410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Le Compteur">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand-mark">🍺</span>
+      <h1 id="page-title">Le Compteur</h1>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ============ ACCUEIL ============ -->
+    <section id="screen-home" class="screen active">
+      <div class="today-strip" id="today-strip"></div>
+
+      <div class="home-cta">
+        <button id="btn-add" class="cap-button" aria-label="Ajouter une bière">
+          <span class="cap-button-icon">🍺</span>
+          <span class="cap-button-label">Ajouter<br>une bière</span>
+        </button>
+
+        <button id="btn-sister" class="sister-button" disabled>
+          <span class="sister-icon">👯</span>
+          <span id="sister-label">La p'tite sœur</span>
+        </button>
+      </div>
+
+      <div class="last-drink" id="last-drink"></div>
+    </section>
+
+    <!-- ============ HISTORIQUE ============ -->
+    <section id="screen-history" class="screen">
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <!-- ============ STATS ============ -->
+    <section id="screen-stats" class="screen">
+      <div class="stats-cards" id="stats-cards"></div>
+      <div class="chart-card">
+        <h2 class="card-title">12 dernières semaines</h2>
+        <div id="chart-weeks"></div>
+      </div>
+      <div class="chart-card">
+        <h2 class="card-title">Top marques</h2>
+        <div id="top-brands"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-screen="home">
+      <span class="tab-icon">🏠</span><span>Accueil</span>
+    </button>
+    <button class="tab" data-screen="history">
+      <span class="tab-icon">📜</span><span>Historique</span>
+    </button>
+    <button class="tab" data-screen="stats">
+      <span class="tab-icon">📊</span><span>Stats</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ============ MODALE AJOUT / EDITION ============ -->
+<div id="sheet-backdrop" class="sheet-backdrop">
+  <div id="sheet" class="sheet">
+    <div class="sheet-handle"></div>
+
+    <div id="step-brand" class="sheet-step">
+      <h2 class="sheet-title">Quelle bière ?</h2>
+      <input id="brand-search" class="search-input" type="text" placeholder="Chercher une marque…" autocomplete="off">
+      <div id="brand-list" class="brand-list"></div>
+      <button id="btn-new-brand" class="ghost-button">+ Ajouter une nouvelle marque</button>
+    </div>
+
+    <div id="step-newbrand" class="sheet-step">
+      <h2 class="sheet-title">Nouvelle marque</h2>
+      <label class="field-label">Nom</label>
+      <input id="new-brand-name" class="text-input" type="text" placeholder="Ex : Météor Pils">
+      <label class="field-label">Style (optionnel)</label>
+      <input id="new-brand-style" class="text-input" type="text" placeholder="Ex : Pils">
+      <label class="field-label">Degré d'alcool % (optionnel)</label>
+      <input id="new-brand-abv" class="text-input" type="number" step="0.1" min="0" max="20" placeholder="Ex : 5.4">
+      <div class="sheet-actions">
+        <button id="btn-newbrand-back" class="secondary-button">Retour</button>
+        <button id="btn-newbrand-next" class="primary-button">Continuer</button>
+      </div>
+    </div>
+
+    <div id="step-qty" class="sheet-step">
+      <h2 class="sheet-title">Quelle quantité ?</h2>
+      <p id="qty-subtitle" class="sheet-subtitle"></p>
+      <div class="qty-grid">
+        <button class="qty-option" data-qty="25">25 cl</button>
+        <button class="qty-option" data-qty="33">33 cl</button>
+        <button class="qty-option" data-qty="50">50 cl</button>
+        <button class="qty-option" data-qty="custom">Autre…</button>
+      </div>
+      <div id="qty-custom-wrap" class="qty-custom-wrap">
+        <input id="qty-custom-input" class="text-input" type="number" min="1" max="500" placeholder="Volume en cl">
+      </div>
+      <div class="sheet-actions">
+        <button id="btn-qty-back" class="secondary-button">Retour</button>
+        <button id="btn-qty-confirm" class="primary-button" disabled>Ajouter</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="beers.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
