@@ -67,9 +67,10 @@
     home: document.getElementById("screen-home"),
     history: document.getElementById("screen-history"),
     stats: document.getElementById("screen-stats"),
+    achievements: document.getElementById("screen-achievements"),
   };
   const pageTitle = document.getElementById("page-title");
-  const titles = { home: "Le Compteur", history: "Historique", stats: "Stats" };
+  const titles = { home: "Le Compteur", history: "Historique", stats: "Stats", achievements: "Succès" };
 
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => switchScreen(tab.dataset.screen));
@@ -82,6 +83,7 @@
     if (name === "history") renderHistory();
     if (name === "stats") renderStats();
     if (name === "home") renderHome();
+    if (name === "achievements") renderAchievements();
   }
 
   /* ---------------- HOME ---------------- */
@@ -551,6 +553,158 @@
         <span class="brand-rank-count">${count}×</span>
       </div>
     `).join("");
+  }
+
+  /* ---------------- ACHIEVEMENTS ---------------- */
+  const NORTH_BRANDS = ["Tandem", "Jenlain", "3 Monts", "Ch'ti", "Anosteké", "La Choulette", "Thiriez", "Pelforth"];
+
+  function computeAchievementStats() {
+    const totalCount = entries.length;
+    const totalVolumeL = entries.reduce((s, e) => s + e.volume, 0) / 100;
+
+    const dayMap = {};
+    entries.forEach(e => {
+      const key = new Date(e.ts).toDateString();
+      dayMap[key] = (dayMap[key] || 0) + 1;
+    });
+    const days = Object.keys(dayMap).map(s => new Date(s)).sort((a, b) => a - b);
+    let longestStreak = 0, run = 0, prev = null;
+    days.forEach(d => {
+      run = (prev && (d - prev) / 86400000 === 1) ? run + 1 : 1;
+      longestStreak = Math.max(longestStreak, run);
+      prev = d;
+    });
+    const maxInOneDay = Math.max(0, ...Object.values(dayMap));
+
+    const brandRoots = new Set();
+    const tandemVariants = new Set();
+    let tandemCount = 0;
+    const northTried = new Set();
+    let hasApero = false, hasNight = false;
+
+    entries.forEach(e => {
+      const leaf = findVariantByFullName(e.brand);
+      const root = leaf ? leaf.brand : e.brand;
+      brandRoots.add(root);
+      if (root === "Tandem") { tandemCount++; tandemVariants.add(e.brand); }
+      if (NORTH_BRANDS.includes(root)) northTried.add(root);
+      const h = new Date(e.ts).getHours();
+      if (h < 12) hasApero = true;
+      if (h < 6) hasNight = true;
+    });
+
+    const tandemGroup = BEERS_DB.find(b => b.brand === "Tandem");
+    const tandemTotalVariants = tandemGroup ? tandemGroup.variants.length : 9;
+
+    return {
+      totalCount, totalVolumeL, longestStreak, maxInOneDay,
+      distinctBrands: brandRoots.size,
+      tandemVariantsTried: tandemVariants.size, tandemTotalVariants, tandemCount,
+      northTried: northTried.size,
+      hasApero, hasNight,
+    };
+  }
+
+  function buildAchievementDefs(stats) {
+    const milestone = (id, emoji, target, current, unit, colorA, colorB, category, exactLabel) => ({
+      id, emoji, target, current,
+      unlocked: current >= target,
+      value: exactLabel || String(target),
+      label: unit, colorA, colorB, category,
+    });
+
+    return [
+      // --- Total bières ---
+      milestone("t10", "🍺", 10, stats.totalCount, "bières", "#E8B84B", "#B5651D", "Total bières"),
+      milestone("t50", "🙌", 50, stats.totalCount, "bières", "#EAC15B", "#AD6218", "Total bières"),
+      milestone("t100", "🏅", 100, stats.totalCount, "bières", "#F0C868", "#A55D14", "Total bières"),
+      milestone("t200", "🏆", 200, stats.totalCount, "bières", "#F5CE70", "#9C5710", "Total bières"),
+      milestone("t500", "💎", 500, stats.totalCount, "bières", "#FBDD8E", "#8F4C0B", "Total bières"),
+      milestone("t1000", "🐐", 1000, stats.totalCount, "bières", "#FFE9A8", "#7A3E06", "Total bières"),
+
+      // --- Volume total ---
+      milestone("v10", "💧", 10, Math.floor(stats.totalVolumeL), "litres", "#6FD3E8", "#1E6E7D", "Volume total"),
+      milestone("v50", "🌊", 50, Math.floor(stats.totalVolumeL), "litres", "#5FC3DC", "#1A6070", "Volume total"),
+      milestone("v100", "🛁", 100, Math.floor(stats.totalVolumeL), "litres", "#50B3D2", "#155263", "Volume total"),
+      milestone("v500", "🛢️", 500, Math.floor(stats.totalVolumeL), "litres", "#41A3C8", "#0F4556", "Volume total"),
+      milestone("v1000", "🚚", 1000, Math.floor(stats.totalVolumeL), "litres", "#3293BE", "#0A3849", "Volume total"),
+
+      // --- Séries ---
+      milestone("s3", "🔥", 3, stats.longestStreak, "jours d'affilée", "#FF9142", "#C1552B", "Séries"),
+      milestone("s7", "⭐", 7, stats.longestStreak, "jours d'affilée", "#FF7A4D", "#B8451F", "Séries"),
+      milestone("s30", "🌋", 30, stats.longestStreak, "jours d'affilée", "#FF6357", "#A83616", "Séries"),
+
+      // --- Record du jour ---
+      milestone("r5", "😅", 5, stats.maxInOneDay, "bières / jour", "#FF8FA3", "#B5294A", "Record du jour"),
+      milestone("r10", "🤯", 10, stats.maxInOneDay, "bières / jour", "#FF7796", "#9E1F3F", "Record du jour"),
+
+      // --- Variété ---
+      milestone("m10", "🗺️", 10, stats.distinctBrands, "marques", "#C9A4F0", "#6B3FA0", "Variété"),
+      milestone("m25", "🌍", 25, stats.distinctBrands, "marques", "#BC91EC", "#5E3391", "Variété"),
+
+      // --- Spécial Nord ---
+      milestone("n_tandem_full", "🎖️", stats.tandemTotalVariants, stats.tandemVariantsTried, "Tandem au complet",
+        "#FFD873", "#C9971F", "Spécial Nord", `${stats.tandemVariantsTried}/${stats.tandemTotalVariants}`),
+      milestone("n_tandem20", "🏭", 20, stats.tandemCount, "bières Tandem", "#FCD265", "#C08B1A", "Spécial Nord"),
+      milestone("n_ambassador", "⚜️", 5, stats.northTried, "brasseries du Nord", "#F5C94E", "#B87F12", "Spécial Nord"),
+
+      // --- Insolite ---
+      {
+        id: "x_apero", emoji: "☀️", target: 1, current: stats.hasApero ? 1 : 0,
+        unlocked: stats.hasApero, value: null, label: "Bière avant midi",
+        colorA: "#FFE066", colorB: "#E0A700", category: "Insolite",
+      },
+      {
+        id: "x_night", emoji: "🦉", target: 1, current: stats.hasNight ? 1 : 0,
+        unlocked: stats.hasNight, value: null, label: "Après minuit",
+        colorA: "#7C8CE8", colorB: "#2A3470", category: "Insolite",
+      },
+    ];
+  }
+
+  function renderAchievements() {
+    const stats = computeAchievementStats();
+    const defs = buildAchievementDefs(stats);
+
+    const byCategory = [];
+    defs.forEach(d => {
+      let group = byCategory.find(g => g.category === d.category);
+      if (!group) { group = { category: d.category, items: [] }; byCategory.push(group); }
+      group.items.push(d);
+    });
+
+    const unlockedCount = defs.filter(d => d.unlocked).length;
+
+    document.getElementById("achievements-list").innerHTML = `
+      <div class="today-strip" style="margin-bottom:22px;">
+        <strong>${unlockedCount}</strong> / ${defs.length} débloqués
+      </div>
+      ${byCategory.map(g => `
+        <div class="ach-section-label">${escapeHTML(g.category)}</div>
+        <div class="ach-grid">
+          ${g.items.map(achCardHTML).join("")}
+        </div>
+      `).join("")}
+    `;
+  }
+
+  function achCardHTML(a) {
+    if (!a.unlocked) {
+      return `
+        <div class="ach-card locked">
+          <span class="ach-lock-badge">🔒</span>
+          <span class="ach-lock-mark">?</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="ach-card unlocked" style="background: linear-gradient(155deg, ${a.colorA}, ${a.colorB});">
+        <span class="ach-check">✓</span>
+        <span class="ach-emoji">${a.emoji}</span>
+        ${a.value ? `<span class="ach-value">${escapeHTML(a.value)}</span>` : ""}
+        <span class="ach-label">${escapeHTML(a.label)}</span>
+      </div>
+    `;
   }
 
   /* ---------------- HELPERS ---------------- */
