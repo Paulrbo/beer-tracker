@@ -14,51 +14,12 @@
   const saveJSON = (key, value) => localStorage.setItem(key, JSON.stringify(value));
 
   let entries = loadJSON(LS_ENTRIES, []);
-  let customBeers = loadJSON(LS_CUSTOM_BEERS, []); // flat [{name, style, abv}]
+  let customBeers = loadJSON(LS_CUSTOM_BEERS, []);
 
-  // Normalize BEERS_DB ({brand, variants:[{label, style, abv}]}) into the
-  // {shortName, fullName, style, abv} shape used throughout the UI.
-  const BEERS_NORM = BEERS_DB.map(g => ({
-    brand: g.brand,
-    variants: g.variants.map(v => ({
-      shortName: v.label || g.brand,
-      fullName: v.label ? `${g.brand} ${v.label}` : g.brand,
-      style: v.style,
-      abv: v.abv,
-    })),
-  }));
+  const allBeers = () => [...customBeers, ...BEERS_DB];
 
   const saveEntries = () => saveJSON(LS_ENTRIES, entries);
   const saveCustomBeers = () => saveJSON(LS_CUSTOM_BEERS, customBeers);
-
-  // Brands from BEERS_DB + each custom addition treated as its own single-variant brand.
-  function getAllBrands() {
-    const custom = customBeers.map(b => ({
-      brand: b.name,
-      variants: [{ shortName: b.name, fullName: b.name, style: b.style, abv: b.abv }],
-    }));
-    return [...BEERS_NORM, ...custom]
-      .slice()
-      .sort((a, b) => a.brand.localeCompare(b.brand, "fr", { sensitivity: "base" }));
-  }
-
-  function findVariantByFullName(fullName) {
-    for (const b of getAllBrands()) {
-      const v = b.variants.find(v => v.fullName === fullName);
-      if (v) return { brand: b.brand, ...v };
-    }
-    return null;
-  }
-
-  function getTopBeers(limit) {
-    const counts = {};
-    entries.forEach(e => { counts[e.brand] = (counts[e.brand] || 0) + 1; });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
-      .map(([fullName, count]) => ({ ...findVariantByFullName(fullName), count }))
-      .filter(x => x.fullName);
-  }
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -125,13 +86,11 @@
   const backdrop = document.getElementById("sheet-backdrop");
   const steps = {
     brand: document.getElementById("step-brand"),
-    variant: document.getElementById("step-variant"),
     newbrand: document.getElementById("step-newbrand"),
     qty: document.getElementById("step-qty"),
   };
 
   let draft = { brand: null, style: null, abv: null, volume: null };
-  let currentBrandGroup = null; // the brand object currently open in the variant step
 
   function openSheet() {
     draft = { brand: null, style: null, abv: null, volume: null };
@@ -157,114 +116,32 @@
 
   brandSearch.addEventListener("input", () => renderBrandList(brandSearch.value));
 
-  function variantRowHTML(v, brandLabel) {
-    const metaBits = [v.style, v.abv ? v.abv + "%" : null].filter(Boolean).join(" · ");
-    const showBrand = brandLabel && brandLabel !== v.shortName;
-    return `
-      <button class="brand-item" data-fullname="${escapeAttr(v.fullName)}">
-        <span class="brand-item-text">
-          <span class="brand-item-name">${escapeHTML(showBrand ? brandLabel + " — " + v.shortName : v.shortName)}</span>
-          <span class="brand-item-meta">${metaBits}</span>
-        </span>
-      </button>
-    `;
-  }
-
   function renderBrandList(filter) {
     const f = filter.trim().toLowerCase();
-
-    // --- SEARCH MODE: flat list of matching variants across all brands ---
-    if (f) {
-      const matches = [];
-      getAllBrands().forEach(b => {
-        b.variants.forEach(v => {
-          if (b.brand.toLowerCase().includes(f) || v.shortName.toLowerCase().includes(f) || v.fullName.toLowerCase().includes(f)) {
-            matches.push({ ...v, brand: b.brand, multiVariant: b.variants.length > 1 });
-          }
-        });
-      });
-      matches.sort((a, b) => a.fullName.localeCompare(b.fullName, "fr", { sensitivity: "base" }));
-      if (matches.length === 0) {
-        brandList.innerHTML = `<div class="brand-list-empty">Aucune bière trouvée</div>`;
-        return;
-      }
-      brandList.innerHTML = matches.slice(0, 50).map(v => variantRowHTML(v, v.multiVariant ? v.brand : null)).join("");
-      wireVariantRows(brandList, (v) => selectVariant(v));
+    const results = allBeers().filter(b => b.name.toLowerCase().includes(f)).slice(0, 40);
+    if (results.length === 0) {
+      brandList.innerHTML = `<div class="brand-list-empty">Aucune marque trouvée</div>`;
       return;
     }
-
-    // --- BROWSE MODE: favorites pinned on top, then brands A-Z ---
-    const top = getTopBeers(3);
-    const brands = getAllBrands();
-    let html = "";
-
-    if (top.length > 0) {
-      html += `<div class="brand-list-section-label">★ Tes habituelles</div>`;
-      html += top.map(v => variantRowHTML(v, v.brand)).join("");
-    }
-
-    html += `<div class="brand-list-section-label">Toutes les marques</div>`;
-    html += brands.map(b => {
-      const single = b.variants.length === 1;
-      const meta = single ? [b.variants[0].style, b.variants[0].abv ? b.variants[0].abv + "%" : null].filter(Boolean).join(" · ") : `${b.variants.length} déclinaisons`;
-      return `
-        <button class="brand-item" data-brand="${escapeAttr(b.brand)}">
-          <span class="brand-item-text">
-            <span class="brand-item-name">${escapeHTML(b.brand)}</span>
-            <span class="brand-item-meta">${meta}</span>
-          </span>
-          ${single ? "" : `<span class="brand-item-chevron">›</span>`}
-        </button>
-      `;
-    }).join("");
-
-    brandList.innerHTML = html;
-
-    // favorites (data-fullname) select immediately
-    wireVariantRows(brandList, (v) => selectVariant(v));
-
-    // brand rows (data-brand) either select directly (single variant) or open sub-menu
-    brandList.querySelectorAll("[data-brand]").forEach(btn => {
+    brandList.innerHTML = results.map(b => `
+      <button class="brand-item" data-name="${escapeAttr(b.name)}">
+        <span class="brand-item-name">${escapeHTML(b.name)}</span>
+        <span class="brand-item-meta">${b.style ? escapeHTML(b.style) : ""}${b.abv ? " · " + b.abv + "%" : ""}</span>
+      </button>
+    `).join("");
+    brandList.querySelectorAll(".brand-item").forEach(btn => {
       btn.addEventListener("click", () => {
-        const group = getAllBrands().find(b => b.brand === btn.dataset.brand);
-        if (!group) return;
-        if (group.variants.length === 1) {
-          selectVariant({ ...group.variants[0], brand: group.brand });
-        } else {
-          openVariantStep(group);
-        }
+        const beer = allBeers().find(b => b.name === btn.dataset.name);
+        selectBrand(beer);
       });
     });
   }
 
-  function wireVariantRows(container, onSelect) {
-    container.querySelectorAll("[data-fullname]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const v = findVariantByFullName(btn.dataset.fullname);
-        if (v) onSelect(v);
-      });
-    });
-  }
-
-  function openVariantStep(group) {
-    currentBrandGroup = group;
-    document.getElementById("variant-title").textContent = group.brand;
-    document.getElementById("variant-list").innerHTML = group.variants
-      .slice()
-      .sort((a, b) => a.shortName.localeCompare(b.shortName, "fr", { sensitivity: "base" }))
-      .map(v => variantRowHTML(v, null))
-      .join("");
-    wireVariantRows(document.getElementById("variant-list"), (v) => selectVariant({ ...v, brand: group.brand }));
-    goToStep("variant");
-  }
-
-  document.getElementById("btn-variant-back").addEventListener("click", () => goToStep("brand"));
-
-  function selectVariant(v) {
-    draft.brand = v.fullName;
-    draft.style = v.style || null;
-    draft.abv = v.abv ?? null;
-    document.getElementById("qty-subtitle").textContent = v.fullName;
+  function selectBrand(beer) {
+    draft.brand = beer.name;
+    draft.style = beer.style || null;
+    draft.abv = beer.abv ?? null;
+    document.getElementById("qty-subtitle").textContent = beer.name;
     resetQtyStep();
     goToStep("qty");
   }
@@ -284,11 +161,11 @@
     const abv = abvRaw ? parseFloat(abvRaw) : null;
 
     if (!customBeers.some(b => b.name.toLowerCase() === name.toLowerCase()) &&
-        !BEERS_NORM.some(b => b.brand.toLowerCase() === name.toLowerCase())) {
+        !BEERS_DB.some(b => b.name.toLowerCase() === name.toLowerCase())) {
       customBeers.unshift({ name, style, abv });
       saveCustomBeers();
     }
-    selectVariant({ brand: name, label: null, style, abv, fullName: name });
+    selectBrand({ name, style, abv });
   });
 
   // --- qty step ---

@@ -42,6 +42,21 @@ python3 -m http.server 8000
 ```
 Puis ouvre `http://localhost:8000` dans un navigateur.
 
+## ⚠️ Important : mettre à jour l'app après un push
+
+L'app fonctionne hors-ligne grâce à un service worker qui met tous les fichiers en cache. Résultat : après un `git push`, ton iPhone continue d'afficher l'**ancienne** version tant que le service worker n'a pas compris qu'il y a du nouveau.
+
+**À chaque fois que tu modifies un fichier (`beers.js`, `app.js`, etc.) et que tu push**, incrémente la version en haut de `service-worker.js` :
+```js
+const CACHE_NAME = "le-compteur-v3"; // v2 → v3, etc.
+```
+Ça force le navigateur à détecter que le service worker a changé, à retélécharger tous les fichiers, et à les remettre en cache.
+
+**Pour forcer la mise à jour immédiate sur ton iPhone** (une fois le nouveau `service-worker.js` en ligne) :
+1. Ouvre l'app depuis l'icône sur l'écran d'accueil, quitte-la complètement (swipe vers le haut).
+2. Rouvre-la : normalement le nouveau service worker s'installe en arrière-plan et prend le relais au lancement suivant.
+3. Si ça ne suffit pas : **Réglages → Safari → Avancé → Données de sites web** → cherche ton nom de domaine GitHub Pages → supprimer. Puis rouvre l'app (ou réinstalle-la depuis Safari si besoin).
+
 ## Étendre la liste de bières
 
 `beers.js` est un simple tableau JS :
