@@ -175,9 +175,13 @@ main {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: transform .12s ease;
+  transition: transform .16s cubic-bezier(.34,1.56,.64,1), box-shadow .16s ease;
 }
-.cap-button:active { transform: scale(0.96); }
+.cap-button.pressed {
+  transform: scale(0.91) translateY(3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 0 0 6px var(--bg), inset 0 8px 16px rgba(0,0,0,0.4);
+  transition: transform .06s ease-out, box-shadow .06s ease-out;
+}
 .cap-button-icon { font-size: 40px; }
 .cap-button-label {
   font-family: 'Oswald', sans-serif;
@@ -555,26 +559,44 @@ main {
 .primary-button:disabled { opacity: 0.4; }
 .secondary-button { background: rgba(36,27,20,0.08); color: #241B14; }
 
-/* ---------- TOAST ---------- */
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(96px + var(--safe-bottom));
-  transform: translate(-50%, 12px);
-  background: var(--gold-bright);
-  color: #241B14;
-  font-weight: 700;
-  font-size: 13.5px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+/* ---------- ADD CONFIRMATION (centered popup) ---------- */
+.add-confirm-card {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 26px;
+  padding: 34px 24px;
+  text-align: center;
+  color: var(--paper);
+  background: linear-gradient(155deg, var(--bg-elevated-2), var(--bg-elevated));
+  border: 1px solid rgba(232,184,75,0.35);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  transform: scale(0.85);
   opacity: 0;
-  pointer-events: none;
-  transition: opacity .2s ease, transform .2s ease;
-  z-index: 200;
-  white-space: nowrap;
+  transition: transform .26s cubic-bezier(.34,1.56,.64,1), opacity .2s ease;
 }
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.sheet-backdrop.center.open .add-confirm-card {
+  transform: scale(1);
+  opacity: 1;
+}
+.add-confirm-emoji { font-size: 44px; display: block; margin-bottom: 6px; }
+.add-confirm-title {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  color: var(--gold-bright);
+}
+.add-confirm-name {
+  font-weight: 700;
+  font-size: 19px;
+  margin-top: 10px;
+}
+.add-confirm-qty {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
 
 /* ---------- ACHIEVEMENTS ---------- */
 .ach-section-label {
@@ -661,6 +683,69 @@ main {
   font-size: 10px;
   font-weight: 900;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.sheet-backdrop.center {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.ach-modal-card {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 26px;
+  padding: 30px 24px 26px;
+  text-align: center;
+  position: relative;
+  color: #241B14;
+  background: linear-gradient(155deg, #E8B84B, #B5651D);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  transform: scale(0.88) translateY(10px);
+  opacity: 0;
+  transition: transform .28s cubic-bezier(.32,.72,0,1), opacity .22s ease;
+}
+.sheet-backdrop.center.open .ach-modal-card {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+.ach-modal-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(36,27,20,0.15);
+  color: #241B14;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ach-modal-eyebrow {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(36,27,20,0.65);
+  margin-bottom: 10px;
+}
+.ach-modal-emoji { font-size: 56px; line-height: 1; margin-bottom: 8px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25)); }
+.ach-modal-value { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 32px; line-height: 1.1; }
+.ach-modal-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(36,27,20,0.7);
+  margin-top: 2px;
+}
+.ach-modal-desc {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(36,27,20,0.15);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #241B14;
 }
 
 @media (prefers-reduced-motion: reduce) {

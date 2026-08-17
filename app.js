@@ -120,7 +120,6 @@
     const last = getLastEntry();
     if (!last) return;
     addEntry({ brand: last.brand, style: last.style, abv: last.abv, volume: last.volume });
-    showToast(`Ajoutée : ${last.brand} · ${formatVolume(last.volume)}`);
   });
 
   /* ---------------- ADD FLOW (SHEET) ---------------- */
@@ -152,6 +151,13 @@
 
   document.getElementById("btn-add").addEventListener("click", openSheet);
   backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeSheet(); });
+
+  // Real button-press feel: press down immediately, spring back on release.
+  const capButton = document.getElementById("btn-add");
+  const pressCap = () => capButton.classList.add("pressed");
+  const releaseCap = () => capButton.classList.remove("pressed");
+  capButton.addEventListener("pointerdown", pressCap);
+  ["pointerup", "pointerleave", "pointercancel"].forEach(evt => capButton.addEventListener(evt, releaseCap));
 
   // --- brand step ---
   const brandSearch = document.getElementById("brand-search");
@@ -338,7 +344,6 @@
   btnQtyConfirm.addEventListener("click", () => {
     if (!draft.volume) return;
     addEntry({ brand: draft.brand, style: draft.style, abv: draft.abv, volume: draft.volume });
-    showToast(`Ajoutée : ${draft.brand} · ${formatVolume(draft.volume)}`);
     closeSheet();
   });
 
@@ -347,6 +352,7 @@
     entries.unshift({ id: uid(), brand, style, abv, volume, ts: Date.now() });
     saveEntries();
     renderHome();
+    showAddConfirm(brand, volume, () => checkNewAchievements());
   }
 
   function deleteEntry(id) {
@@ -606,58 +612,82 @@
   }
 
   function buildAchievementDefs(stats) {
-    const milestone = (id, emoji, target, current, unit, colorA, colorB, category, exactLabel) => ({
+    const milestone = (id, emoji, target, current, unit, colorA, colorB, category, description, exactLabel) => ({
       id, emoji, target, current,
       unlocked: current >= target,
       value: exactLabel || String(target),
-      label: unit, colorA, colorB, category,
+      label: unit, colorA, colorB, category, description,
     });
 
     return [
       // --- Total bières ---
-      milestone("t10", "🍺", 10, stats.totalCount, "bières", "#E8B84B", "#B5651D", "Total bières"),
-      milestone("t50", "🙌", 50, stats.totalCount, "bières", "#EAC15B", "#AD6218", "Total bières"),
-      milestone("t100", "🏅", 100, stats.totalCount, "bières", "#F0C868", "#A55D14", "Total bières"),
-      milestone("t200", "🏆", 200, stats.totalCount, "bières", "#F5CE70", "#9C5710", "Total bières"),
-      milestone("t500", "💎", 500, stats.totalCount, "bières", "#FBDD8E", "#8F4C0B", "Total bières"),
-      milestone("t1000", "🐐", 1000, stats.totalCount, "bières", "#FFE9A8", "#7A3E06", "Total bières"),
+      milestone("t10", "🍺", 10, stats.totalCount, "bières", "#E8B84B", "#B5651D", "Total bières",
+        "Tu commences à connaître le chemin du frigo."),
+      milestone("t50", "🙌", 50, stats.totalCount, "bières", "#EAC15B", "#AD6218", "Total bières",
+        "Le pote qui a toujours une bière sous la main."),
+      milestone("t100", "🏅", 100, stats.totalCount, "bières", "#F0C868", "#A55D14", "Total bières",
+        "Centurion. Le Nord te salue."),
+      milestone("t200", "🏆", 200, stats.totalCount, "bières", "#F5CE70", "#9C5710", "Total bières",
+        "T'as ton tabouret attitré au bar, maintenant."),
+      milestone("t500", "💎", 500, stats.totalCount, "bières", "#FBDD8E", "#8F4C0B", "Total bières",
+        "Le barman connaît ta commande avant que tu l'ouvres."),
+      milestone("t1000", "🐐", 1000, stats.totalCount, "bières", "#FFE9A8", "#7A3E06", "Total bières",
+        "Roi des pochetrons. Longue vie au roi. 👑"),
 
       // --- Volume total ---
-      milestone("v10", "💧", 10, Math.floor(stats.totalVolumeL), "litres", "#6FD3E8", "#1E6E7D", "Volume total"),
-      milestone("v50", "🌊", 50, Math.floor(stats.totalVolumeL), "litres", "#5FC3DC", "#1A6070", "Volume total"),
-      milestone("v100", "🛁", 100, Math.floor(stats.totalVolumeL), "litres", "#50B3D2", "#155263", "Volume total"),
-      milestone("v500", "🛢️", 500, Math.floor(stats.totalVolumeL), "litres", "#41A3C8", "#0F4556", "Volume total"),
-      milestone("v1000", "🚚", 1000, Math.floor(stats.totalVolumeL), "litres", "#3293BE", "#0A3849", "Volume total"),
+      milestone("v10", "💧", 10, Math.floor(stats.totalVolumeL), "litres", "#6FD3E8", "#1E6E7D", "Volume total",
+        "Un petit fût, à toi tout seul."),
+      milestone("v50", "🌊", 50, Math.floor(stats.totalVolumeL), "litres", "#5FC3DC", "#1A6070", "Volume total",
+        "T'as bu ton poids en bière. Ou presque."),
+      milestone("v100", "🛁", 100, Math.floor(stats.totalVolumeL), "litres", "#50B3D2", "#155263", "Volume total",
+        "Une baignoire entière. Respect."),
+      milestone("v500", "🛢️", 500, Math.floor(stats.totalVolumeL), "litres", "#41A3C8", "#0F4556", "Volume total",
+        "Tu commences à peser sur le cours du houblon."),
+      milestone("v1000", "🚚", 1000, Math.floor(stats.totalVolumeL), "litres", "#3293BE", "#0A3849", "Volume total",
+        "Un camion-citerne rien que pour toi."),
 
       // --- Séries ---
-      milestone("s3", "🔥", 3, stats.longestStreak, "jours d'affilée", "#FF9142", "#C1552B", "Séries"),
-      milestone("s7", "⭐", 7, stats.longestStreak, "jours d'affilée", "#FF7A4D", "#B8451F", "Séries"),
-      milestone("s30", "🌋", 30, stats.longestStreak, "jours d'affilée", "#FF6357", "#A83616", "Séries"),
+      milestone("s3", "🔥", 3, stats.longestStreak, "jours d'affilée", "#FF9142", "#C1552B", "Séries",
+        "3 jours de suite. Ton foie commence à te connaître par cœur."),
+      milestone("s7", "⭐", 7, stats.longestStreak, "jours d'affilée", "#FF7A4D", "#B8451F", "Séries",
+        "Une semaine complète. Discipline ou dépendance, on ne juge pas."),
+      milestone("s30", "🌋", 30, stats.longestStreak, "jours d'affilée", "#FF6357", "#A83616", "Séries",
+        "Un mois entier. T'es plus un buveur, t'es un mode de vie."),
 
       // --- Record du jour ---
-      milestone("r5", "😅", 5, stats.maxInOneDay, "bières / jour", "#FF8FA3", "#B5294A", "Record du jour"),
-      milestone("r10", "🤯", 10, stats.maxInOneDay, "bières / jour", "#FF7796", "#9E1F3F", "Record du jour"),
+      milestone("r5", "😅", 5, stats.maxInOneDay, "bières / jour", "#FF8FA3", "#B5294A", "Record du jour",
+        "Grosse soirée, hein ?"),
+      milestone("r10", "🤯", 10, stats.maxInOneDay, "bières / jour", "#FF7796", "#9E1F3F", "Record du jour",
+        "Alerte : capacité maximale du foie atteinte."),
 
       // --- Variété ---
-      milestone("m10", "🗺️", 10, stats.distinctBrands, "marques", "#C9A4F0", "#6B3FA0", "Variété"),
-      milestone("m25", "🌍", 25, stats.distinctBrands, "marques", "#BC91EC", "#5E3391", "Variété"),
+      milestone("m10", "🗺️", 10, stats.distinctBrands, "marques", "#C9A4F0", "#6B3FA0", "Variété",
+        "Tu collectionnes les étiquettes plus que les timbres."),
+      milestone("m25", "🌍", 25, stats.distinctBrands, "marques", "#BC91EC", "#5E3391", "Variété",
+        "Sommelier de la bière, ça existe. Et c'est toi."),
 
       // --- Spécial Nord ---
       milestone("n_tandem_full", "🎖️", stats.tandemTotalVariants, stats.tandemVariantsTried, "Tandem au complet",
-        "#FFD873", "#C9971F", "Spécial Nord", `${stats.tandemVariantsTried}/${stats.tandemTotalVariants}`),
-      milestone("n_tandem20", "🏭", 20, stats.tandemCount, "bières Tandem", "#FCD265", "#C08B1A", "Spécial Nord"),
-      milestone("n_ambassador", "⚜️", 5, stats.northTried, "brasseries du Nord", "#F5C94E", "#B87F12", "Spécial Nord"),
+        "#FFD873", "#C9971F", "Spécial Nord",
+        "Toute la gamme Tandem à ton actif. Wambrechies te doit une statue.",
+        `${stats.tandemVariantsTried}/${stats.tandemTotalVariants}`),
+      milestone("n_tandem20", "🏭", 20, stats.tandemCount, "bières Tandem", "#FCD265", "#C08B1A", "Spécial Nord",
+        "T'es limite actionnaire de la brasserie."),
+      milestone("n_ambassador", "⚜️", 5, stats.northTried, "brasseries du Nord", "#F5C94E", "#B87F12", "Spécial Nord",
+        "Ambassadeur officieux du patrimoine brassicole ch'ti."),
 
       // --- Insolite ---
       {
         id: "x_apero", emoji: "☀️", target: 1, current: stats.hasApero ? 1 : 0,
         unlocked: stats.hasApero, value: null, label: "Bière avant midi",
         colorA: "#FFE066", colorB: "#E0A700", category: "Insolite",
+        description: "Bah alors, on se la coule douce aujourd'hui ?",
       },
       {
         id: "x_night", emoji: "🦉", target: 1, current: stats.hasNight ? 1 : 0,
         unlocked: stats.hasNight, value: null, label: "Après minuit",
         colorA: "#7C8CE8", colorB: "#2A3470", category: "Insolite",
+        description: "Chouette, une bière de hibou. Rentre bien.",
       },
     ];
   }
@@ -665,6 +695,7 @@
   function renderAchievements() {
     const stats = computeAchievementStats();
     const defs = buildAchievementDefs(stats);
+    lastAchievementDefs = defs;
 
     const byCategory = [];
     defs.forEach(d => {
@@ -675,7 +706,8 @@
 
     const unlockedCount = defs.filter(d => d.unlocked).length;
 
-    document.getElementById("achievements-list").innerHTML = `
+    const container = document.getElementById("achievements-list");
+    container.innerHTML = `
       <div class="today-strip" style="margin-bottom:22px;">
         <strong>${unlockedCount}</strong> / ${defs.length} débloqués
       </div>
@@ -686,6 +718,13 @@
         </div>
       `).join("")}
     `;
+
+    container.querySelectorAll(".ach-card.unlocked[data-ach-id]").forEach(card => {
+      card.addEventListener("click", () => {
+        const a = lastAchievementDefs.find(d => d.id === card.dataset.achId);
+        if (a) openAchModal(a, false);
+      });
+    });
   }
 
   function achCardHTML(a) {
@@ -698,13 +737,86 @@
       `;
     }
     return `
-      <div class="ach-card unlocked" style="background: linear-gradient(155deg, ${a.colorA}, ${a.colorB});">
+      <div class="ach-card unlocked" data-ach-id="${escapeAttr(a.id)}" style="background: linear-gradient(155deg, ${a.colorA}, ${a.colorB});">
         <span class="ach-check">✓</span>
         <span class="ach-emoji">${a.emoji}</span>
         ${a.value ? `<span class="ach-value">${escapeHTML(a.value)}</span>` : ""}
         <span class="ach-label">${escapeHTML(a.label)}</span>
       </div>
     `;
+  }
+
+  /* ---------------- ADD CONFIRMATION (centered popup) ---------------- */
+  const addConfirmBackdrop = document.getElementById("add-confirm-backdrop");
+  let addConfirmTimer = null;
+
+  function showAddConfirm(name, volume, onDone) {
+    document.getElementById("add-confirm-name").textContent = name;
+    document.getElementById("add-confirm-qty").textContent = formatVolume(volume);
+    addConfirmBackdrop.classList.add("open");
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(addConfirmTimer);
+      addConfirmBackdrop.classList.remove("open");
+      addConfirmBackdrop.removeEventListener("click", finish);
+      // small delay so the close transition isn't cut off by an achievement modal opening
+      setTimeout(() => onDone && onDone(), 260);
+    };
+    addConfirmBackdrop.addEventListener("click", finish);
+    addConfirmTimer = setTimeout(finish, 1600);
+  }
+
+  /* ---------------- ACHIEVEMENT MODAL (celebration + detail view) ---------------- */
+  const achBackdrop = document.getElementById("ach-modal-backdrop");
+  const achCard = document.getElementById("ach-modal-card");
+  const achContent = document.getElementById("ach-modal-content");
+  let achQueue = [];
+
+  function openAchModal(a, celebratory) {
+    achCard.style.background = `linear-gradient(155deg, ${a.colorA}, ${a.colorB})`;
+    achContent.innerHTML = `
+      ${celebratory ? `<div class="ach-modal-eyebrow">🎉 Succès débloqué</div>` : ""}
+      <div class="ach-modal-emoji">${a.emoji}</div>
+      ${a.value ? `<div class="ach-modal-value">${escapeHTML(a.value)}</div>` : ""}
+      <div class="ach-modal-label">${escapeHTML(a.label)}</div>
+      <div class="ach-modal-desc">${escapeHTML(a.description)}</div>
+    `;
+    achBackdrop.classList.add("open");
+  }
+  function closeAchModal() {
+    achBackdrop.classList.remove("open");
+    if (achQueue.length > 0) {
+      setTimeout(() => openAchModal(achQueue.shift(), true), 320);
+    }
+  }
+  document.getElementById("ach-modal-close").addEventListener("click", closeAchModal);
+  achBackdrop.addEventListener("click", (e) => { if (e.target === achBackdrop) closeAchModal(); });
+
+  const LS_SEEN_ACH = "seenAchievements";
+  let lastAchievementDefs = [];
+
+  // First time this feature runs, baseline whatever's already unlocked as "seen"
+  // so existing progress doesn't trigger a wall of celebration popups retroactively.
+  if (loadJSON(LS_SEEN_ACH, null) === null) {
+    const baselineDefs = buildAchievementDefs(computeAchievementStats());
+    saveJSON(LS_SEEN_ACH, baselineDefs.filter(d => d.unlocked).map(d => d.id));
+  }
+
+  // Compares freshly-unlocked achievements against what's already been celebrated,
+  // and queues up the celebration popup for any new ones.
+  function checkNewAchievements() {
+    const stats = computeAchievementStats();
+    const defs = buildAchievementDefs(stats);
+    const seen = new Set(loadJSON(LS_SEEN_ACH, []));
+    const freshlyUnlocked = defs.filter(d => d.unlocked && !seen.has(d.id));
+    if (freshlyUnlocked.length === 0) return;
+    freshlyUnlocked.forEach(d => seen.add(d.id));
+    saveJSON(LS_SEEN_ACH, [...seen]);
+    achQueue = freshlyUnlocked.slice(1);
+    openAchModal(freshlyUnlocked[0], true);
   }
 
   /* ---------------- HELPERS ---------------- */
@@ -736,15 +848,6 @@
   }
   function escapeHTML(s) { return String(s).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m])); }
   function escapeAttr(s) { return escapeHTML(s); }
-
-  let toastTimer = null;
-  function showToast(msg) {
-    const el = document.getElementById("toast");
-    el.textContent = msg;
-    el.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
-  }
 
   /* ---------------- INIT ---------------- */
   renderHome();

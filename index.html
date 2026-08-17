@@ -108,12 +108,6 @@
       <div id="variant-list" class="brand-list"></div>
     </div>
 
-    <div id="step-variant" class="sheet-step">
-      <h2 class="sheet-title" id="variant-title">Quelle déclinaison ?</h2>
-      <div id="variant-list" class="brand-list"></div>
-      <button id="btn-variant-back" class="ghost-button">‹ Retour aux marques</button>
-    </div>
-
     <div id="step-newbrand" class="sheet-step">
       <h2 class="sheet-title">Nouvelle marque</h2>
       <label class="field-label">Nom</label>
@@ -149,7 +143,22 @@
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
+<div id="add-confirm-backdrop" class="sheet-backdrop center">
+  <div class="add-confirm-card">
+    <span class="add-confirm-emoji">🍺</span>
+    <div class="add-confirm-title">Ajoutée !</div>
+    <div class="add-confirm-name" id="add-confirm-name"></div>
+    <div class="add-confirm-qty" id="add-confirm-qty"></div>
+  </div>
+</div>
+
+<div id="ach-modal-backdrop" class="sheet-backdrop center">
+  <div id="ach-modal-card" class="ach-modal-card">
+    <button id="ach-modal-close" class="ach-modal-close">✕</button>
+    <div id="ach-modal-content"></div>
+  </div>
+</div>
+
 
 <script src="beers.js"></script>
 <script src="app.js"></script>
