@@ -1,6 +1,10 @@
 (() => {
   "use strict";
 
+  // iOS Safari suppresses :active feedback app-wide unless a touchstart
+  // listener exists somewhere on the page. This unlocks it globally.
+  document.addEventListener("touchstart", () => {}, { passive: true });
+
   /* ---------------- STORAGE ---------------- */
   const LS_ENTRIES = "beerEntries";
   const LS_CUSTOM_BEERS = "customBeers";
@@ -154,8 +158,16 @@
 
   // Real button-press feel: press down immediately, spring back on release.
   const capButton = document.getElementById("btn-add");
-  const pressCap = () => capButton.classList.add("pressed");
-  const releaseCap = () => capButton.classList.remove("pressed");
+  const PRESS_MIN_MS = 110;
+  let pressStartedAt = 0;
+  const pressCap = () => {
+    pressStartedAt = performance.now();
+    capButton.classList.add("pressed");
+  };
+  const releaseCap = () => {
+    const elapsed = performance.now() - pressStartedAt;
+    setTimeout(() => capButton.classList.remove("pressed"), Math.max(0, PRESS_MIN_MS - elapsed));
+  };
   capButton.addEventListener("pointerdown", pressCap);
   ["pointerup", "pointerleave", "pointercancel"].forEach(evt => capButton.addEventListener(evt, releaseCap));
 
@@ -753,6 +765,13 @@
   function showAddConfirm(name, volume, onDone) {
     document.getElementById("add-confirm-name").textContent = name;
     document.getElementById("add-confirm-qty").textContent = formatVolume(volume);
+
+    // Retrigger the checkmark pop animation every time (it only plays once per DOM element otherwise).
+    const checkEl = document.querySelector("#add-confirm-backdrop .add-confirm-check");
+    checkEl.classList.remove("pop");
+    void checkEl.offsetWidth; // force reflow
+    checkEl.classList.add("pop");
+
     addConfirmBackdrop.classList.add("open");
 
     let finished = false;
