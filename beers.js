@@ -6,8 +6,8 @@
 // affiché est reconstruit ailleurs en combinant brand + label).
 //
 // "style" est strictement limité à 12 catégories fixes :
-// Blonde, Triple, Pils, Rouge, IPA, NEIPA, Brune, Ambrée, Fruitée,
-// Lager mexicaine, Blanche, Sans Alcool.
+// Blonde, Triple, Pils, Rouge, IPA, NEIPA, Brune, Ambrée,
+// Aromatisée, Blanche, Sans Alcool.
 // Un style de base "absorbe" dans la catégorie la plus proche quand il n'a
 // pas de case dédiée (ex. Saison -> Blonde, Stout -> Brune, Dubbel -> Brune,
 // bière de garde ambrée -> Ambrée). Toute bière à 0%/0.0% passe en
@@ -216,6 +216,7 @@ const BEERS_DB = [
       { label: "Ruby", style: "Fruitée", abv: 5.0 },
       { label: "Radieuse", style: "Ambrée", abv: 8.2 },
       { label: "Royale", style: "Brune", abv: 7.0 },
+      { label: "Rituel", style: "Triple", abv: 9.0 },
     ],
   },
   {
@@ -474,6 +475,58 @@ const BEERS_DB = [
   { brand: "Girardin", variants: [{ label: "Gueuze", style: "Fruitée", abv: 5.0 }] },
   { brand: "Floris", variants: [{ label: null, style: "Fruitée", abv: 3.6 }] },
 
+
+    // ================= BIERES EN CANETTES =================
+  {
+    brand: "8.6",
+    variants: [
+        { label: "Original", style: "Blonde", abv: 8.6 },
+        { label: "Blond", style: "Pils", abv: 5.5 },
+        { label: "IPA", style: "Blonde", abv: 7 },
+        { label: "Gold", style: "Blonde", abv: 6.5 },
+        { label: "Extreme", style: "Blonde", abv: 10.5 },
+        { label: "Cherry", style: "Rouge", abv: 7.2 },
+        { label: "Amber", style: "Ambrée", abv: 7.9 },
+        { label: "Black", style: "Brune", abv: 7.9 },
+    ],
+  },
+
+  {
+    brand: "Amsterdam",
+    variants: [
+        { label: "Maximator", style: "Blonde", abv: 11.6 },
+        { label: "Navigator", style: "Blonde", abv: 8.0 },
+        { label: "Mariner", style: "Blonde", abv: 8.0 },
+    ],
+  },
+
+  {
+    brand: "Prestige",
+    variants: [
+        { label: "8", style: "Blonde", abv: 8.0 },
+        { label: "12", style: "Blonde", abv: 12.0 },
+    ],
+  },
+
+  {
+    brand: "Démon",
+    variants: [
+        { label: "Mega Démon", style: "Blonde", abv: 16.0 },
+        { label: "Bière du Démon", style: "Blonde", abv: 12.0 },
+    ],
+  },
+
+  {
+    brand: "Faxe",
+    variants: [
+        { label: "Premium", style: "Blonde", abv: 5.0 },
+        { label: "10", style: "Blonde", abv: 10.0 },
+    ],
+  },
+
+
+
+
   // ================= AUTRES CLASSIQUES / INTERNATIONAUX =================
 
   {
@@ -487,7 +540,22 @@ const BEERS_DB = [
   },
   { brand: "Heineken", variants: [{ label: null, style: "Pils", abv: 5.0 }] },
   { brand: "Kronenbourg", variants: [{ label: null, style: "Pils", abv: 4.2 }] },
-  { brand: "Desperados", variants: [{ label: null, style: "Lager mexicaine", abv: 5.9 }] },
-  { brand: "Corona", variants: [{ label: null, style: "Lager mexicaine", abv: 4.5 }] },
+  { brand: "Corona", variants: [{ label: null, style: "Aromatisée", abv: 4.5 }] },
   { brand: "Guinness", variants: [{ label: null, style: "Brune", abv: 4.2 }] },
+  { brand: "Picon", variants: [{ label: null, style: "Aromatisée", abv: 7.0 }] },
+  { brand: "Monaco", variants: [{ label: null, style: "Aromatisée", abv: 3.5 }] },
+  { brand: "Pils random", variants: [{ label: null, style: "Pils", abv: 5.0 }] },
+  { brand: "Corbeau", variants: [{ label: null, style: "Blonde", abv: 9.0 }] },
+  { brand: "Rince Cochon", variants: [{ label: null, style: "Blonde", abv: 8.5 }] },
+
+  {
+    brand: "Desperados",
+    variants: [
+        { label: "Original", style: "Aromatisée", abv: 5.9 },
+        { label: "Red", style: "Rouge", abv: 5.9 },
+        { label: "Tropical", style: "Aromatisée", abv: 5.9 },
+        { label: "Virgin", style: "Sans alcool", abv: 0.0 },
+    ],
+  },
+
 ];
