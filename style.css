@@ -221,15 +221,32 @@ main {
 .last-drink strong { color: var(--paper); }
 
 /* ---------- HISTORY ---------- */
+.history-day-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 22px 0 8px;
+}
+.history-day-row:first-child { margin-top: 0; }
 .history-day-label {
   font-family: 'Oswald', sans-serif;
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--gold);
-  margin: 22px 0 8px;
 }
-.history-day-label:first-child { margin-top: 0; }
+.catchup-btn {
+  background: rgba(232,184,75,0.12);
+  border: 1px solid rgba(232,184,75,0.35);
+  color: var(--gold-bright);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.catchup-btn:active { background: rgba(232,184,75,0.22); }
 
 .history-row {
   background: var(--bg-elevated);
@@ -285,6 +302,27 @@ main {
   font-weight: 600;
 }
 .edit-qty-grid button.selected { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.edit-datetime-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.edit-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.edit-field input {
+  color-scheme: dark;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
 .edit-row-actions { display: flex; gap: 8px; }
 .edit-row-actions button { flex: 1; padding: 9px 0; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; }
 .btn-save { background: var(--gold); color: var(--bg); }
@@ -323,48 +361,36 @@ main {
   letter-spacing: 0.06em;
 }
 
-/* Tally-mark weekly chart: pub chalkboard style, distinct from generic bar chart */
-.tally-week {
+/* Weekly volume histogram (litres) */
+.volume-chart {
   display: flex;
   align-items: flex-end;
   gap: 10px;
   overflow-x: auto;
   padding-bottom: 6px;
+  height: 130px;
 }
-.tally-col {
+.volume-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-width: 30px;
+  min-width: 26px;
 }
-.tally-marks {
+.volume-bar-wrap {
   height: 90px;
   display: flex;
   align-items: flex-end;
-  justify-content: center;
 }
-.tally-marks svg { display: block; }
-.tally-count { font-size: 11px; font-weight: 700; color: var(--paper); }
-.tally-wk { font-size: 9.5px; color: var(--text-muted); }
-
-.brand-rank-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 13.5px;
-}
-.brand-rank-row:last-child { border-bottom: none; }
-.brand-rank-pos {
-  font-family: 'Oswald', sans-serif;
-  color: var(--copper);
-  font-weight: 700;
+.volume-bar {
   width: 18px;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, var(--gold-bright), var(--copper));
+  min-height: 0;
+  transition: height 0.3s ease;
 }
-.brand-rank-name { flex: 1; font-weight: 600; }
-.brand-rank-count { color: var(--text-muted); font-size: 12.5px; }
+.volume-value { font-size: 10.5px; font-weight: 700; color: var(--paper); white-space: nowrap; }
+.volume-wk { font-size: 9.5px; color: var(--text-muted); }
 
 /* ---------- BOTTOM SHEET ---------- */
 .sheet-backdrop {
@@ -411,6 +437,17 @@ main {
   margin-bottom: 14px;
 }
 .sheet-subtitle { font-size: 13px; color: #5c4a38; margin: -8px 0 14px; }
+.catchup-banner {
+  display: none;
+  background: rgba(181,101,29,0.14);
+  border: 1px solid rgba(181,101,29,0.35);
+  color: var(--copper);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 10px;
+  margin: -6px 0 12px;
+}
 
 .search-input, .text-input {
   background: #EFE6D4;

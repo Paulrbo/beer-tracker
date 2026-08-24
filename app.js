@@ -54,14 +54,22 @@
     return null;
   }
 
-  function getTopBeers(limit) {
-    const counts = {};
-    entries.forEach(e => { counts[e.brand] = (counts[e.brand] || 0) + 1; });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, limit)
-      .map(([fullName, count]) => ({ ...findVariantByFullName(fullName), count }))
-      .filter(x => x.fullName);
+  // Returns the `limit` most recently added distinct beers (by insertion order,
+  // i.e. selection recency) — not by how often they've been drunk overall.
+  // `entries` is always newest-first (addEntry uses unshift), so array order
+  // already reflects "when it was picked", even for catch-up entries backdated
+  // to an earlier day/time.
+  function getRecentBeers(limit) {
+    const seen = new Set();
+    const result = [];
+    for (const e of entries) {
+      if (seen.has(e.brand)) continue;
+      seen.add(e.brand);
+      const v = findVariantByFullName(e.brand);
+      if (v && v.fullName) result.push(v);
+      if (result.length >= limit) break;
+    }
+    return result;
   }
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -138,22 +146,39 @@
   let draft = { brand: null, style: null, abv: null, volume: null };
   let currentBrandGroup = null; // the brand object currently open in the variant step
 
+  // When set, the next confirmed entry is stamped with this timestamp instead
+  // of "now" — used by the per-day "Rattrapage" button in Historique.
+  let catchUpTimestamp = null;
+
   function openSheet() {
     draft = { brand: null, style: null, abv: null, volume: null };
     goToStep("brand");
     document.getElementById("brand-search").value = "";
     renderBrandList("");
+
+    const banner = document.getElementById("catchup-banner");
+    if (catchUpTimestamp) {
+      banner.textContent = `🕐 Rattrapage — ${formatDayLabel(new Date(catchUpTimestamp))} à 22h`;
+      banner.style.display = "block";
+    } else {
+      banner.style.display = "none";
+    }
+
     backdrop.classList.add("open");
     setTimeout(() => document.getElementById("brand-search").focus({ preventScroll: true }), 250);
   }
   function closeSheet() {
     backdrop.classList.remove("open");
+    catchUpTimestamp = null;
   }
   function goToStep(name) {
     Object.entries(steps).forEach(([k, el]) => el.classList.toggle("active", k === name));
   }
 
-  document.getElementById("btn-add").addEventListener("click", openSheet);
+  document.getElementById("btn-add").addEventListener("click", () => {
+    catchUpTimestamp = null;
+    openSheet();
+  });
   backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeSheet(); });
 
   // Real button-press feel: press down immediately, spring back on release.
@@ -213,14 +238,14 @@
       return;
     }
 
-    // --- BROWSE MODE: favorites pinned on top, then brands A-Z ---
-    const top = getTopBeers(3);
+    // --- BROWSE MODE: recent picks pinned on top, then brands A-Z ---
+    const recent = getRecentBeers(3);
     const brands = getAllBrands();
     let html = "";
 
-    if (top.length > 0) {
-      html += `<div class="brand-list-section-label">★ Tes habituelles</div>`;
-      html += top.map(v => variantRowHTML(v, v.brand)).join("");
+    if (recent.length > 0) {
+      html += `<div class="brand-list-section-label">★ Tes choix récents</div>`;
+      html += recent.map(v => variantRowHTML(v, v.brand)).join("");
     }
 
     html += `<div class="brand-list-section-label">Toutes les marques</div>`;
@@ -355,15 +380,16 @@
   document.getElementById("btn-qty-back").addEventListener("click", () => goToStep("brand"));
   btnQtyConfirm.addEventListener("click", () => {
     if (!draft.volume) return;
-    addEntry({ brand: draft.brand, style: draft.style, abv: draft.abv, volume: draft.volume });
+    addEntry({ brand: draft.brand, style: draft.style, abv: draft.abv, volume: draft.volume, ts: catchUpTimestamp });
     closeSheet();
   });
 
   /* ---------------- ENTRIES ---------------- */
-  function addEntry({ brand, style, abv, volume }) {
-    entries.unshift({ id: uid(), brand, style, abv, volume, ts: Date.now() });
+  function addEntry({ brand, style, abv, volume, ts }) {
+    entries.unshift({ id: uid(), brand, style, abv, volume, ts: ts || Date.now() });
     saveEntries();
     renderHome();
+    renderHistory();
     showAddConfirm(brand, volume, () => checkNewAchievements());
   }
 
@@ -398,18 +424,26 @@
       const key = d.toDateString();
       if (key !== currentKey) {
         currentKey = key;
-        currentGroup = { label: formatDayLabel(d), items: [] };
+        currentGroup = { label: formatDayLabel(d), dayDate: d, items: [] };
         groups.push(currentGroup);
       }
       currentGroup.items.push(e);
     });
 
     container.innerHTML = groups.map(g => `
-      <div class="history-day-label">${g.label}</div>
+      <div class="history-day-row">
+        <span class="history-day-label">${g.label}</span>
+        <button class="catchup-btn" data-catchup-ts="${catchUpTsForDay(g.dayDate)}">🕐 Rattrapage</button>
+      </div>
       ${g.items.map(e => entryRowHTML(e)).join("")}
     `).join("");
 
     // wire actions
+    container.querySelectorAll("[data-catchup-ts]").forEach(btn =>
+      btn.addEventListener("click", () => {
+        catchUpTimestamp = parseInt(btn.dataset.catchupTs, 10);
+        openSheet();
+      }));
     container.querySelectorAll("[data-edit]").forEach(btn =>
       btn.addEventListener("click", () => { editingId = btn.dataset.edit; renderHistory(); }));
     container.querySelectorAll("[data-delete]").forEach(btn =>
@@ -428,11 +462,28 @@
       btn.addEventListener("click", () => {
         const row = btn.closest(".edit-row");
         const vol = parseInt(row.dataset.volume, 10);
+        const dateVal = row.querySelector(".edit-date-input").value;
+        const timeVal = row.querySelector(".edit-time-input").value;
+        let newTs = parseInt(row.dataset.ts, 10);
+        if (dateVal && timeVal) {
+          const [y, m, d] = dateVal.split("-").map(Number);
+          const [hh, mi] = timeVal.split(":").map(Number);
+          const combined = new Date(y, m - 1, d, hh, mi, 0, 0);
+          if (!isNaN(combined.getTime())) newTs = combined.getTime();
+        }
         if (vol > 0) {
-          updateEntry(btn.dataset.saveEdit, { volume: vol });
+          updateEntry(btn.dataset.saveEdit, { volume: vol, ts: newTs });
           editingId = null;
         }
       }));
+  }
+
+  // Builds a timestamp for a given calendar day at 22:00 — used as the
+  // default time for entries added via the "Rattrapage" button.
+  function catchUpTsForDay(dayDate) {
+    const d = new Date(dayDate);
+    d.setHours(22, 0, 0, 0);
+    return d.getTime();
   }
 
   function entryRowHTML(e) {
@@ -440,11 +491,21 @@
       const standard = [25, 33, 50];
       const isStandard = standard.includes(e.volume);
       return `
-        <div class="edit-row" data-volume="${e.volume}">
+        <div class="edit-row" data-volume="${e.volume}" data-ts="${e.ts}">
           <div class="edit-row-title">${escapeHTML(e.brand)}</div>
           <div class="edit-qty-grid">
             ${standard.map(v => `<button data-qty-edit="${v}" class="${e.volume === v ? "selected" : ""}">${v} cl</button>`).join("")}
             <button data-qty-edit="${e.volume}" class="${!isStandard ? "selected" : ""}">${!isStandard ? e.volume + " cl" : "Autre"}</button>
+          </div>
+          <div class="edit-datetime-row">
+            <label class="edit-field">
+              <span>Date</span>
+              <input type="date" class="edit-date-input" value="${toDateInputValue(e.ts)}">
+            </label>
+            <label class="edit-field">
+              <span>Heure</span>
+              <input type="time" class="edit-time-input" value="${toTimeInputValue(e.ts)}">
+            </label>
           </div>
           <div class="edit-row-actions">
             <button class="btn-cancel" data-cancel-edit="${e.id}">Annuler</button>
@@ -481,100 +542,50 @@
     const monthEntries = entries.filter(e => e.ts >= startOfMonth.getTime());
     const yearEntries = entries.filter(e => e.ts >= startOfYear.getTime());
 
+    const litersOf = (arr) => arr.reduce((s, e) => s + e.volume, 0) / 100;
+
     document.getElementById("stats-cards").innerHTML = [
-      statCard(weekEntries.length, "cette\u00a0semaine"),
-      statCard(monthEntries.length, "ce\u00a0mois-ci"),
-      statCard(yearEntries.length, "cette\u00a0ann\u00e9e"),
+      statCard(litersOf(weekEntries), "cette\u00a0semaine"),
+      statCard(litersOf(monthEntries), "ce\u00a0mois-ci"),
+      statCard(litersOf(yearEntries), "cette\u00a0ann\u00e9e"),
     ].join("");
 
-    renderWeeklyTally();
-    renderTopBrands(yearEntries.length ? yearEntries : entries);
+    renderWeeklyVolumeChart();
   }
 
-  function statCard(count, label) {
-    return `<div class="stat-card"><div class="num">${count}</div><div class="unit">bière${count !== 1 ? "s" : ""}</div><div class="label">${label}</div></div>`;
+  function statCard(liters, label) {
+    return `<div class="stat-card"><div class="num">${formatLiters(liters)}</div><div class="unit">litres</div><div class="label">${label}</div></div>`;
   }
 
-  function renderWeeklyTally() {
+  function renderWeeklyVolumeChart() {
     const weeks = [];
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const weekStart = getStartOfWeek(new Date(now.getTime() - i * 7 * 86400000));
       const weekEnd = new Date(weekStart.getTime() + 7 * 86400000);
-      const count = entries.filter(e => e.ts >= weekStart.getTime() && e.ts < weekEnd.getTime()).length;
-      weeks.push({ count, label: `${weekStart.getDate()}/${weekStart.getMonth() + 1}` });
+      const liters = entries
+        .filter(e => e.ts >= weekStart.getTime() && e.ts < weekEnd.getTime())
+        .reduce((s, e) => s + e.volume, 0) / 100;
+      weeks.push({ liters, label: `${weekStart.getDate()}/${weekStart.getMonth() + 1}` });
     }
-    const max = Math.max(1, ...weeks.map(w => w.count));
+    const max = Math.max(1, ...weeks.map(w => w.liters));
     document.getElementById("chart-weeks").innerHTML = `
-      <div class="tally-week">
+      <div class="volume-chart">
         ${weeks.map(w => `
-          <div class="tally-col">
-            <div class="tally-marks">${tallySVG(w.count, max)}</div>
-            <div class="tally-count">${w.count}</div>
-            <div class="tally-wk">${w.label}</div>
+          <div class="volume-col">
+            <div class="volume-bar-wrap">
+              <div class="volume-bar" style="height:${w.liters > 0 ? Math.max(4, Math.round((w.liters / max) * 90)) : 0}px"></div>
+            </div>
+            <div class="volume-value">${w.liters > 0 ? formatLiters(w.liters) : "–"}</div>
+            <div class="volume-wk">${w.label}</div>
           </div>
         `).join("")}
       </div>
     `;
   }
 
-  // Draws chalkboard-style tally marks (bundles of 5, 4 verticals + 1 diagonal strike)
-  function tallySVG(count, max) {
-    if (count === 0) {
-      return `<svg width="20" height="4"><line x1="2" y1="2" x2="18" y2="2" stroke="#5c4a38" stroke-width="2" stroke-linecap="round" opacity="0.4"/></svg>`;
-    }
-    const bundles = Math.floor(count / 5);
-    const remainder = count % 5;
-    const groupW = 22, strokeH = 82, gap = 6;
-    const totalGroups = bundles + (remainder > 0 ? 1 : 0);
-    const w = totalGroups * groupW + Math.max(0, totalGroups - 1) * gap;
-    let x = 2;
-    let marks = "";
-    for (let b = 0; b < bundles; b++) {
-      marks += tallyGroup(x, strokeH, 5);
-      x += groupW + gap;
-    }
-    if (remainder > 0) {
-      marks += tallyGroup(x, strokeH, remainder);
-      x += groupW + gap;
-    }
-    return `<svg width="${w}" height="${strokeH + 4}" viewBox="0 0 ${w} ${strokeH + 4}">${marks}</svg>`;
-  }
-
-  function tallyGroup(x0, h, n) {
-    const color = "#E8B84B";
-    let s = "";
-    const spacing = 5;
-    for (let i = 0; i < Math.min(n, 4); i++) {
-      const x = x0 + i * spacing;
-      s += `<line x1="${x}" y1="${h + 4}" x2="${x}" y2="4" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>`;
-    }
-    if (n === 5) {
-      s += `<line x1="${x0 - 2}" y1="${h}" x2="${x0 + 3 * spacing + 2}" y2="4" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>`;
-    }
-    return s;
-  }
-
-  function renderTopBrands(sourceEntries) {
-    const counts = {};
-    sourceEntries.forEach(e => { counts[e.brand] = (counts[e.brand] || 0) + 1; });
-    const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    const el = document.getElementById("top-brands");
-    if (ranked.length === 0) {
-      el.innerHTML = `<div class="brand-list-empty" style="color:var(--text-muted)">Pas encore de données</div>`;
-      return;
-    }
-    el.innerHTML = ranked.map(([name, count], i) => `
-      <div class="brand-rank-row">
-        <span class="brand-rank-pos">${i + 1}</span>
-        <span class="brand-rank-name">${escapeHTML(name)}</span>
-        <span class="brand-rank-count">${count}×</span>
-      </div>
-    `).join("");
-  }
-
   /* ---------------- ACHIEVEMENTS ---------------- */
-  const NORTH_BRANDS = ["Tandem", "Jenlain", "3 Monts", "Ch'ti", "Anosteké", "La Choulette", "Thiriez", "Pelforth"];
+  const NORTH_BRANDS = ["Tandem", "Jenlain", "3 Monts", "Ch'ti", "Anosteké", "Choulette", "Thiriez", "Pelforth"];
 
   function computeAchievementStats() {
     const totalCount = entries.length;
@@ -850,6 +861,16 @@
     return date;
   }
   function formatVolume(cl) { return cl >= 100 ? (cl / 100).toFixed(cl % 100 === 0 ? 0 : 1) + " L" : cl + " cl"; }
+  function formatLiters(l) { return l.toFixed(1).replace(".", ","); }
+  function toDateInputValue(ts) {
+    const d = new Date(ts);
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  function toTimeInputValue(ts) {
+    const d = new Date(ts);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
   function formatTime(d) { return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
   function formatDayLabel(d) {
     const today = new Date(); const yesterday = new Date(today.getTime() - 86400000);
