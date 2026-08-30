@@ -5,13 +5,20 @@
 // IMPORTANT : "label" ne doit JAMAIS répéter le nom de la marque (le nom
 // affiché est reconstruit ailleurs en combinant brand + label).
 //
-// "style" est strictement limité à 12 catégories fixes :
+// "style" est strictement limité à 11 catégories fixes :
 // Blonde, Triple, Pils, Rouge, IPA, NEIPA, Brune, Ambrée,
 // Aromatisée, Blanche, Sans Alcool.
 // Un style de base "absorbe" dans la catégorie la plus proche quand il n'a
 // pas de case dédiée (ex. Saison -> Blonde, Stout -> Brune, Dubbel -> Brune,
-// bière de garde ambrée -> Ambrée). Toute bière à 0%/0.0% passe en
-// "Sans Alcool" quel que soit son style de base.
+// bière de garde ambrée -> Ambrée, gueuze/lambic non fruité -> Blonde).
+// Toute bière à 0%/0.0% passe en "Sans Alcool" quel que soit son style de base.
+//
+// IMPORTANT : "Rouge" est réservé aux authentiques bières rousses/rouges
+// flamandes de fermentation mixte (Rodenbach, Duchesse de Bourgogne, Petrus,
+// Bacchus, Liefmans Goudenband) — pas aux bières simplement AROMATISÉES aux
+// fruits rouges/cerise (Kriek, Kasteel Rouge, Delirium Red, Belzebuth Rouge,
+// 8.6 Cherry...), qui vont toutes en "Aromatisée" même si "rouge" apparaît
+// dans leur nom.
 //
 // Degrés vérifiés via les fiches brasseurs/sites officiels quand possible ;
 // pour certaines petites brasseries artisanales ou déclinaisons sans fiche
@@ -76,7 +83,7 @@ const BEERS_DB = [
     brand: "Choulette",
     variants: [
       { label: "Ambrée", style: "Ambrée", abv: 7.5 },
-      { label: "Framboise", style: "Fruitée", abv: 4.5 },
+      { label: "Framboise", style: "Aromatisée", abv: 4.5 },
     ],
   },
   {
@@ -116,10 +123,10 @@ const BEERS_DB = [
       { label: null, style: "Blonde", abv: 7.2 },
       { label: "Ambrée", style: "Ambrée", abv: 7.2 },
       { label: "IPA", style: "IPA", abv: 7.2 },
-      { label: "Rubis", style: "Fruitée", abv: 5.0 },
+      { label: "Rubis", style: "Aromatisée", abv: 5.0 },
       { label: "La Raoul", style: "Blonde", abv: 6.5 }, // estimé
       { label: "Belzebuth", style: "Blonde", abv: 13.0 },
-      { label: "Belzebuth Rouge", style: "Fruitée", abv: 8.5 },
+      { label: "Belzebuth Rouge", style: "Aromatisée", abv: 8.5 },
     ],
   },
   {
@@ -213,7 +220,7 @@ const BEERS_DB = [
       { label: "Blonde", style: "Blonde", abv: 6.6 },
       { label: "Brune", style: "Brune", abv: 6.5 },
       { label: "Triple", style: "Triple", abv: 8.4 },
-      { label: "Ruby", style: "Fruitée", abv: 5.0 },
+      { label: "Ruby", style: "Aromatisée", abv: 5.0 },
       { label: "Radieuse", style: "Ambrée", abv: 8.2 },
       { label: "Royale", style: "Brune", abv: 7.0 },
       { label: "Rituel", style: "Triple", abv: 9.0 },
@@ -324,7 +331,7 @@ const BEERS_DB = [
     variants: [
       { label: "Tremens", style: "Blonde", abv: 8.5 },
       { label: "Nocturnum", style: "Brune", abv: 8.5 },
-      { label: "Red", style: "Rouge", abv: 8.0 },
+      { label: "Red", style: "Aromatisée", abv: 8.0 },
     ],
   },
   {
@@ -348,7 +355,7 @@ const BEERS_DB = [
     variants: [
       { label: "Donker", style: "Brune", abv: 11.0 },
       { label: "Tripel", style: "Triple", abv: 11.0 },
-      { label: "Rouge", style: "Fruitée", abv: 8.0 },
+      { label: "Rouge", style: "Aromatisée", abv: 8.0 },
     ],
   },
   {
@@ -389,7 +396,7 @@ const BEERS_DB = [
     brand: "Hoegaarden",
     variants: [
       { label: "Blanche", style: "Blanche", abv: 4.9 },
-      { label: "Rosée", style: "Fruitée", abv: 3.0 },
+      { label: "Rosée", style: "Aromatisée", abv: 3.0 },
       { label: "Grand Cru", style: "Blonde", abv: 8.5 },
     ],
   },
@@ -441,22 +448,22 @@ const BEERS_DB = [
   { brand: "Palm", variants: [{ label: null, style: "Ambrée", abv: 5.2 }] },
   { brand: "Steendonk", variants: [{ label: null, style: "Blanche", abv: 4.5 }] },
 
-  // ================= BELGIQUE — LAMBICS, FRUITÉES, SAISONS =================
+  // ================= BELGIQUE — LAMBICS, AROMATISÉES, SAISONS =================
 
-  { brand: "Cantillon", variants: [{ label: "Gueuze", style: "Fruitée", abv: 5.0 }] },
-  { brand: "Lindemans", variants: [{ label: "Kriek", style: "Fruitée", abv: 3.5 }] },
-  { brand: "Belle-Vue", variants: [{ label: "Kriek", style: "Fruitée", abv: 5.2 }] },
-  { brand: "Mort Subite", variants: [{ label: "Kriek", style: "Fruitée", abv: 4.3 }] },
-  { brand: "Timmermans", variants: [{ label: "Kriek", style: "Fruitée", abv: 4.0 }] },
-  { brand: "Boon", variants: [{ label: "Kriek", style: "Fruitée", abv: 4.0 }] },
+  { brand: "Cantillon", variants: [{ label: "Gueuze", style: "Blonde", abv: 5.0 }] },
+  { brand: "Lindemans", variants: [{ label: "Kriek", style: "Aromatisée", abv: 3.5 }] },
+  { brand: "Belle-Vue", variants: [{ label: "Kriek", style: "Aromatisée", abv: 5.2 }] },
+  { brand: "Mort Subite", variants: [{ label: "Kriek", style: "Aromatisée", abv: 4.3 }] },
+  { brand: "Timmermans", variants: [{ label: "Kriek", style: "Aromatisée", abv: 4.0 }] },
+  { brand: "Boon", variants: [{ label: "Kriek", style: "Aromatisée", abv: 4.0 }] },
   {
     brand: "Liefmans",
     variants: [
       { label: "Goudenband", style: "Rouge", abv: 8.0 },
-      { label: "Fruitesse", style: "Fruitée", abv: 3.8 },
+      { label: "Fruitesse", style: "Aromatisée", abv: 3.8 },
     ],
   },
-  { brand: "Chapeau", variants: [{ label: null, style: "Fruitée", abv: 3.0 }] },
+  { brand: "Chapeau", variants: [{ label: null, style: "Aromatisée", abv: 3.0 }] },
   { brand: "Saison Dupont", variants: [{ label: null, style: "Blonde", abv: 6.5 }] },
   { brand: "Saison Silly", variants: [{ label: null, style: "Blonde", abv: 5.0 }] },
   { brand: "Fantôme", variants: [{ label: null, style: "Blonde", abv: 8.0 }] },
@@ -471,9 +478,9 @@ const BEERS_DB = [
   { brand: "Wittekerke", variants: [{ label: null, style: "Blanche", abv: 5.0 }] },
   { brand: "Blanche de Bruxelles", variants: [{ label: null, style: "Blanche", abv: 4.5 }] },
   { brand: "Grisette", variants: [{ label: null, style: "Blonde", abv: 4.1 }] },
-  { brand: "3 Fonteinen", variants: [{ label: "Oude Geuze", style: "Fruitée", abv: 6.0 }] },
-  { brand: "Girardin", variants: [{ label: "Gueuze", style: "Fruitée", abv: 5.0 }] },
-  { brand: "Floris", variants: [{ label: null, style: "Fruitée", abv: 3.6 }] },
+  { brand: "3 Fonteinen", variants: [{ label: "Oude Geuze", style: "Blonde", abv: 6.0 }] },
+  { brand: "Girardin", variants: [{ label: "Gueuze", style: "Blonde", abv: 5.0 }] },
+  { brand: "Floris", variants: [{ label: null, style: "Aromatisée", abv: 3.6 }] },
 
 
     // ================= BIERES EN CANETTES =================
@@ -485,7 +492,7 @@ const BEERS_DB = [
         { label: "IPA", style: "Blonde", abv: 7 },
         { label: "Gold", style: "Blonde", abv: 6.5 },
         { label: "Extreme", style: "Blonde", abv: 10.5 },
-        { label: "Cherry", style: "Rouge", abv: 7.2 },
+        { label: "Cherry", style: "Aromatisée", abv: 7.2 },
         { label: "Amber", style: "Ambrée", abv: 7.9 },
         { label: "Black", style: "Brune", abv: 7.9 },
     ],
@@ -508,13 +515,8 @@ const BEERS_DB = [
     ],
   },
 
-  {
-    brand: "Démon",
-    variants: [
-        { label: "Mega Démon", style: "Blonde", abv: 16.0 },
-        { label: "Bière du Démon", style: "Blonde", abv: 12.0 },
-    ],
-  },
+  { brand: "Mega Démon", variants: [{ label: null, style: "Blonde", abv: 16.0 }] },
+  { brand: "Bière du Démon", variants: [{ label: null, style: "Blonde", abv: 12.0 }] },
 
   {
     brand: "Faxe",
@@ -534,7 +536,7 @@ const BEERS_DB = [
     variants: [
       { label: "Blonde", style: "Pils", abv: 5.5 },
       { label: "Blanc", style: "Blanche", abv: 5.0 },
-      { label: "Rosé", style: "Fruitée", abv: 4.5 },
+      { label: "Rosé", style: "Aromatisée", abv: 4.5 },
       { label: "0.0%", style: "Sans Alcool", abv: 0.0 },
     ],
   },
@@ -552,9 +554,9 @@ const BEERS_DB = [
     brand: "Desperados",
     variants: [
         { label: "Original", style: "Aromatisée", abv: 5.9 },
-        { label: "Red", style: "Rouge", abv: 5.9 },
+        { label: "Red", style: "Aromatisée", abv: 5.9 },
         { label: "Tropical", style: "Aromatisée", abv: 5.9 },
-        { label: "Virgin", style: "Sans alcool", abv: 0.0 },
+        { label: "Virgin", style: "Sans Alcool", abv: 0.0 },
     ],
   },
 

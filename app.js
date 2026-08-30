@@ -822,8 +822,7 @@
       setTimeout(() => openAchModal(achQueue.shift(), true), 320);
     }
   }
-  document.getElementById("ach-modal-close").addEventListener("click", closeAchModal);
-  achBackdrop.addEventListener("click", (e) => { if (e.target === achBackdrop) closeAchModal(); });
+  achBackdrop.addEventListener("click", closeAchModal);
 
   const LS_SEEN_ACH = "seenAchievements";
   let lastAchievementDefs = [];
@@ -892,9 +891,24 @@
   /* ---------------- INIT ---------------- */
   renderHome();
 
+  let swRegistration = null;
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+      navigator.serviceWorker.register("service-worker.js")
+        .then(reg => { swRegistration = reg; })
+        .catch(() => {});
     });
   }
+
+  // Manual "check for updates & reload" button. This only ever refreshes the
+  // cached app files (HTML/CSS/JS) — it never touches localStorage, so
+  // entries, custom beers and achievement progress are always untouched.
+  document.getElementById("btn-reload-app").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-reload-app");
+    btn.classList.add("spinning");
+    try {
+      if (swRegistration) await swRegistration.update();
+    } catch (e) { /* ignore — reload anyway below */ }
+    setTimeout(() => window.location.reload(), 300);
+  });
 })();

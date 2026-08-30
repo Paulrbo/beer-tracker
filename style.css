@@ -68,6 +68,13 @@ button:focus-visible, input:focus-visible {
   z-index: 10;
 }
 .topbar-inner {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 10px;
+}
+.topbar-spacer { width: 32px; }
+.topbar-title-group {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,6 +86,23 @@ button:focus-visible, input:focus-visible {
   font-weight: 600;
   color: var(--gold-bright);
 }
+.reload-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(246,239,227,0.08);
+  color: var(--text-muted);
+  font-size: 17px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, background .15s ease, color .15s ease;
+}
+.reload-btn:active { background: rgba(246,239,227,0.16); color: var(--gold-bright); }
+.reload-btn.spinning { animation: reloadSpin .7s linear; color: var(--gold-bright); }
+@keyframes reloadSpin { to { transform: rotate(360deg); } }
 
 /* ---------- MAIN / SCREENS ---------- */
 main {
@@ -767,17 +791,6 @@ main {
 .sheet-backdrop.center.open .ach-modal-card {
   transform: scale(1) translateY(0);
   opacity: 1;
-}
-.ach-modal-close {
-  position: absolute;
-  top: 12px; right: 12px;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(36,27,20,0.15);
-  color: #241B14;
-  font-size: 13px;
-  display: flex; align-items: center; justify-content: center;
 }
 .ach-modal-eyebrow {
   font-family: 'Oswald', sans-serif;
